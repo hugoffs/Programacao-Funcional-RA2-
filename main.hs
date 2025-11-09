@@ -7,7 +7,7 @@
 module Main where
 
 -- Importação dos Módulos 
-import EscruturaDados
+import EstruturaDados
 import LoopPrincipal
 
 import System.IO
