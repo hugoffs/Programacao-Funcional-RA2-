@@ -1,19 +1,41 @@
 module LoopPrincipal where
+import Data.Time (UTCTime, getCurrentTime)
+import Funcoes
+import EstruturaDados
 
 -- Funções temporárias (você precisa implementar depois)
-addItem :: IO ()
-addItem = putStrLn "Função addItem ainda não implementada"
+addItemIO :: IO ()
+addItemIO = do
+    putStrLn "\n=== Adicionar Novo Item ==="
+    putStr "ID do Item: "
+    idItem <- getLine
+    putStr "Nome do Item: "
+    nomeItem <- getLine
+    putStr "Quantidade: "
+    qtdStr <- getLine
+    putStr "Categoria: "
+    categoria <- getLine
 
-removerIntem :: IO ()
-removerIntem = putStrLn "Função removerIntem ainda não implementada"
+    let qtd = read qtdStr :: Int
+    horario <- getCurrentTime
+    case Funcoes.addItem horario idItem nomeItem qtd categoria myInventory of
+        Left erro -> putStrLn $ "Erro: " ++ erro
+        Right (novoInventario, logEntry) -> do
+            putStrLn "Item adicionado corretamente."
+            print logEntry
+            print novoInventario
+
+
+removeItem :: IO ()
+removeItem = putStrLn "Função removerItem ainda não implementada"
 
 relatorio :: IO ()
 relatorio = putStrLn "Função relatorio ainda não implementada"
 
 execucaoLoop :: String -> IO ()
 execucaoLoop conferiOpcao
-    | conferiOpcao == "1" = addItem >> menu
-    | conferiOpcao == "2" = removerIntem >> menu
+    | conferiOpcao == "1" = addItemIO >> menu
+    | conferiOpcao == "2" = removeItem >> menu
     | conferiOpcao == "3" = relatorio >> menu
     | conferiOpcao == "0" = putStrLn "Saindo do programa..."
     | otherwise = putStrLn "Operacao nao valida!" >> menu
