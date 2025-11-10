@@ -20,12 +20,15 @@ sincronizacao arq test
     | test == "write" = writeFile arq ""
     | otherwise = error "Operação do arquivo Errado"
 
+
 -- Inicializa um único arquivo
-inicializarArquivos :: FilePath -> IO ()
+inicializarArquivos :: FilePath -> IO () 
 inicializarArquivos arq = do
-    (do conteudo <- readFile arq
-        length conteudo `seq` return ())
-        `catch` (\(_ :: IOException) -> writeFile arq "")
+    catch (do
+        lerArquivo <- openFile arq ReadMode  
+        hClose lerArquivo
+        return ()) 
+        (\(_ :: IOException) -> sincronizacao arq "write") -- caso não exista o arquivo ele vai ser criado 
 
 -- Inicializa múltiplos arquivos
 inicializacao :: [FilePath] -> IO ()
@@ -33,6 +36,6 @@ inicializacao arqs = mapM_ inicializarArquivos arqs
 
 main :: IO ()
 main = do 
-    inicializacao ["Inventario.dat", "Auditoria.log"]
+    inicializacao ["Inventario.dat", "Auditoria.log"] -- caso não exista os arquivos vai ter q fechar e abrir o codigo novamente 
     putStrLn "Arquivos inicializados com sucesso!"
     menu  -- Chama o menu principal
