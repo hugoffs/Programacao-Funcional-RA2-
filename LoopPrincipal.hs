@@ -8,6 +8,7 @@ import System.IO (hFlush, stdout)
 addItemIO :: IO ()
 addItemIO = do
     putStrLn "\n=== Adicionar Novo Item ==="
+    hFlush stdout
     putStr "ID do Item: "
     hFlush stdout
     idItem <- getLine

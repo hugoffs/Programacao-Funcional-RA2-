@@ -7,23 +7,11 @@ import EstruturaDados
 
 addItem :: UTCTime -> String -> String -> Int -> String -> Inventario -> Either String ResultadoOperacao
 addItem horario idItem nomeItem qtd categ inventarioArmazenado
-  | qtd <= 0 =
-      let logEntry = LogEntry
-            { timestamp = horario
-            , acao = Add
-            , detalhes = "Tentativa de inserção com quantidade inválida"
-            , status = Falha "Quantidade deve ser positiva"
-            }
-      in Left "Quantidade deve ser positiva"
+  | qtd <= 0 = 
+      Left "Quantidade deve ser positiva"
 
-  | Map.member idItem inventarioArmazenado =
-      let logEntry = LogEntry
-            { timestamp = horario
-            , acao = Add
-            , detalhes = "Tentativa de inserção duplicada"
-            , status = Falha "Item já existe no inventário"
-            }
-      in Left "Item com mesmo ID já existe no inventário"
+  | Map.member idItem inventarioArmazenado = 
+      Left "Item com mesmo ID ja existe no inventario"
 
   | otherwise =
       let novoItem = Item
