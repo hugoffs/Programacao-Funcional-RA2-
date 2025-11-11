@@ -6,24 +6,12 @@ import Data.Map (Map)
 import EstruturaDados
 
 addItem :: UTCTime -> String -> String -> Int -> String -> Inventario -> Either String ResultadoOperacao
-addItem horario idItem nomeItem qtd categ inventario
-  | qtd <= 0 =
-    let logEntry = LogEntry
-            { timestamp = horario
-            , acao = Add
-            , detalhes = "Falha ao adicionar item " ++ nomeItem ++ ": quantidade menor que 0"
-            , status = Falha "Quantidade menor ou igual a zero"
-            }
-    in Right (inventario, logEntry)
+addItem horario idItem nomeItem qtd categ inventarioArmazenado
+  | qtd <= 0 = 
+      Left "Quantidade deve ser positiva"
 
-  | Map.member idItem inventario = 
-      let logEntry = LogEntry
-            { timestamp = horario
-            , acao = Add
-            , detalhes = "Falha ao adicionar item duplicado: " ++ idItem
-            , status = Falha "Item já existente"
-            }
-      in Right (inventario, logEntry)
+  | Map.member idItem inventarioArmazenado = 
+      Left "Item com mesmo ID ja existe no inventario"
 
   | otherwise =
       let novoItem = Item
@@ -32,7 +20,7 @@ addItem horario idItem nomeItem qtd categ inventario
             , quantidade = qtd
             , categoria = categ
             }
-          novoInventario = Map.insert idItem novoItem inventario
+          novoInventario = Map.insert idItem novoItem inventarioArmazenado
           logEntry = LogEntry
             { timestamp = horario
             , acao = Add
@@ -45,35 +33,23 @@ addItem horario idItem nomeItem qtd categ inventario
       in Right (novoInventario, logEntry)
 
 removeItem :: UTCTime -> String -> Int -> Inventario -> Either String ResultadoOperacao
-removeItem horario idItem qtd inventario
-  | qtd <= 0 =
-      let logEntry = LogEntry
-            { timestamp = horario
-            , acao = Remove
-            , detalhes = "Erro: quantidade menor ou igual a zero (" ++ show qtd ++ ")"
-            , status = Falha "Quantidade deve ser positiva"
-            }
-      in Right (inventario, logEntry)
+removeItem horario idItem qtd inventarioArmazenado
+  | qtd <= 0 = 
+      Left "Quantidade deve ser positiva"
 
-  | Map.notMember idItem inventario =
-      let logEntry = LogEntry horario Remove
-            ("Item não encontrado: " ++ idItem)
-            (Falha "Item inexistente no inventário")
-      in Right (inventario, logEntry)
+  | Map.notMember idItem inventarioArmazenado = 
+      Left "Item com esse ID não existe"
 
   | qtdAtual < qtd =
-      let logEntry = LogEntry horario Remove
-            ("Falha ao remover item " ++ idItem ++ ": estoque insuficiente")
-            (Falha "Estoque insuficiente")
-      in Right (inventario, logEntry)
+      Left "Estoque insuficiente"
 
   | otherwise =
-      let itemAtual = inventario Map.! idItem
+      let itemAtual = inventarioArmazenado Map.! idItem
           novaQtd = qtdAtual - qtd
           itemAtualizado = itemAtual { quantidade = novaQtd }
           novoInventario = if novaQtd == 0
-                           then Map.delete idItem inventario
-                           else Map.insert idItem itemAtualizado inventario
+                           then Map.delete idItem inventarioArmazenado
+                           else Map.insert idItem itemAtualizado inventarioArmazenado
           logEntry = LogEntry
             { timestamp = horario
             , acao = Remove
@@ -85,37 +61,23 @@ removeItem horario idItem qtd inventario
             }
       in Right (novoInventario, logEntry)
   where
-    qtdAtual = maybe 0 quantidade (Map.lookup idItem inventario)
-    
-    
+    qtdAtual = maybe 0 quantidade (Map.lookup idItem inventarioArmazenado)
+
 updateQty :: UTCTime -> String -> Int -> Inventario -> Either String ResultadoOperacao
-updateQty horario idItem novaQtd inventario
+updateQty horario idItem novaQtd inventarioArmazenado
     | novaQtd < 0 =
-        let logEntry = LogEntry
-              { timestamp = horario
-              , acao = Update
-              , detalhes = "Falha, quantidade incorreta" ++ idItem ++ ": quantidade negativa"
-              , status = Falha "Quantidade não pode ser menor que 0."
-              }
-        in Right (inventario, logEntry)
+        Left "Quantidade não pode ser negativa"
 
-    | Map.notMember idItem inventario =
-        let logEntry = LogEntry
-              { timestamp = horario
-              , acao = Update
-              , detalhes = "Falha ao atualizar:" ++ idItem ++ " não existe no inventário"
-              , status = Falha "Item nao existe"
-              }
-        in Right (inventario, logEntry)
-
+    | Map.notMember idItem inventarioArmazenado =
+        Left "Item com esse ID não existe"
 
     | otherwise =
-      let itemAtual = inventario Map.! idItem
+      let itemAtual = inventarioArmazenado Map.! idItem
           qtdAnterior = quantidade itemAtual
           itemAtualizado = itemAtual { quantidade = novaQtd }
           novoInventario = if novaQtd == 0
-                           then Map.delete idItem inventario
-                           else Map.insert idItem itemAtualizado inventario
+                           then Map.delete idItem inventarioArmazenado
+                           else Map.insert idItem itemAtualizado inventarioArmazenado
           logEntry = LogEntry
             { timestamp = horario
             , acao = Update
