@@ -39,8 +39,29 @@ addItemIO = do
         (Funcoes.addItem horario idItem nomeItem qtd categoria myInventory)
 
 
-removeItem :: IO ()
-removeItem = putStrLn "Função removerItem ainda não implementada"
+removeItemIO :: IO ()
+removeItemIO = do
+    putStrLn "\n=== Remover Item ==="
+    hFlush stdout
+    putStr "ID do Item: "
+    hFlush stdout
+    idItem <- getLine
+    
+    putStr "Quantidade a remover: "
+    hFlush stdout
+    qtdStr <- getLine
+    
+    let qtd = read qtdStr :: Int
+    horario <- getCurrentTime
+    
+    either 
+        (\erro -> putStrLn $ "Erro: " ++ erro)
+        (\(novoInventario, logEntry) -> do
+            putStrLn "Item removido com sucesso!"
+            print logEntry
+            print novoInventario
+        )
+        (Funcoes.removeItem horario idItem qtd myInventory)
 
 relatorio :: IO ()
 relatorio = putStrLn "Função relatorio ainda não implementada"
@@ -48,7 +69,7 @@ relatorio = putStrLn "Função relatorio ainda não implementada"
 execucaoLoop :: String -> IO ()
 execucaoLoop conferiOpcao
     | conferiOpcao == "1" = addItemIO >> menu
-    | conferiOpcao == "2" = removeItem >> menu
+    | conferiOpcao == "2" = removeItemIO >> menu
     | conferiOpcao == "3" = relatorio >> menu
     | conferiOpcao == "0" = putStrLn "Saindo do programa..."
     | otherwise = putStrLn "Operacao nao valida!" >> menu
