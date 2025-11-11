@@ -23,7 +23,7 @@ addItem horario idItem nomeItem qtd categ inventarioArmazenado
             , detalhes = "Tentativa de inserção duplicada"
             , status = Falha "Item já existe no inventário"
             }
-      in Left "Item já existe no inventário"
+      in Left "Item com mesmo ID já existe no inventário"
 
   | otherwise =
       let novoItem = Item

@@ -2,28 +2,40 @@ module LoopPrincipal where
 import Data.Time (UTCTime, getCurrentTime)
 import Funcoes
 import EstruturaDados
+import System.IO (hFlush, stdout)
 
 -- Funções temporárias (você precisa implementar depois)
 addItemIO :: IO ()
 addItemIO = do
     putStrLn "\n=== Adicionar Novo Item ==="
     putStr "ID do Item: "
+    hFlush stdout
     idItem <- getLine
+    
     putStr "Nome do Item: "
+    hFlush stdout
     nomeItem <- getLine
+    
     putStr "Quantidade: "
+    hFlush stdout
     qtdStr <- getLine
+    
+    
     putStr "Categoria: "
+    hFlush stdout
     categoria <- getLine
 
     let qtd = read qtdStr :: Int
     horario <- getCurrentTime
-    case Funcoes.addItem horario idItem nomeItem qtd categoria myInventory of
-        Left erro -> putStrLn $ "Erro: " ++ erro
-        Right (novoInventario, logEntry) -> do
-            putStrLn "Item adicionado corretamente."
+    
+    either 
+        (\erro -> putStrLn $ "Erro: " ++ erro)
+        (\(novoInventario, logEntry) -> do
+            putStrLn "Item adicionado com sucesso!"
             print logEntry
             print novoInventario
+        )
+        (Funcoes.addItem horario idItem nomeItem qtd categoria myInventory)
 
 
 removeItem :: IO ()
