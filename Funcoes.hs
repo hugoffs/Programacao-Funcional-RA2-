@@ -62,4 +62,29 @@ removeItem horario idItem qtd inventarioArmazenado
       in Right (novoInventario, logEntry)
   where
     qtdAtual = maybe 0 quantidade (Map.lookup idItem inventarioArmazenado)
-  
+
+updateQty :: UTCTime -> String -> Int -> Inventario -> Either String ResultadoOperacao
+updateQty horario idItem novaQtd inventarioArmazenado
+    | novaQtd < 0 =
+        Left "Quantidade não pode ser negativa"
+
+    | Map.notMember idItem inventarioArmazenado =
+        Left "Item com esse ID não existe"
+
+    | otherwise =
+      let itemAtual = inventarioArmazenado Map.! idItem
+          qtdAnterior = quantidade itemAtual
+          itemAtualizado = itemAtual { quantidade = novaQtd }
+          novoInventario = if novaQtd == 0
+                           then Map.delete idItem inventarioArmazenado
+                           else Map.insert idItem itemAtualizado inventarioArmazenado
+          logEntry = LogEntry
+            { timestamp = horario
+            , acao = Update
+            , detalhes = "Item atualizado: " ++ nome itemAtual ++
+                          " (ID: " ++ idItem ++
+                          ", Qtd anterior: " ++ show qtdAnterior ++
+                          ", Nova qtd: " ++ show novaQtd ++ ")"
+            , status = Sucesso
+            }
+      in Right (novoInventario, logEntry)
