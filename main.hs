@@ -146,7 +146,7 @@ removeItemIO = do
     putStrLn "\n=== Remover Item ==="
     hFlush stdout
 
-    inventarioAtual <- carregarInventario  -- CARREGA O INVENTÁRIO
+    inventarioAtual <- carregarInventario
 
     idItem <- getSafeInput "ID do Item: "
     qtd <- getSafeInputInt "Quantidade a remover: "
@@ -167,8 +167,11 @@ removeItemIO = do
                     }
 
             registrarLog (show logErro)
-            putStrLn "Erro registrado em Auditoria.log."
-
+            putStrLn "Erro registrado em Auditoria.log"
+        Right (novoInventario, logEntry) -> do
+            writeFile "Inventario.dat" (show novoInventario)
+            registrarLog (show logEntry)
+            putStrLn "Item removido"
 
 updateItemIO :: IO ()
 updateItemIO = do

@@ -33,50 +33,45 @@ addItem horario idItem nomeItem qtd categ inventario
             }
       in Right (novoInventario, logEntry)
 
-removeItem :: UTCTime -> String -> Int -> Inventario -> Either String ResultadoOperacao
+removeItem :: UTCTime -> String -> Int -> Inventario 
+           -> Either String ResultadoOperacao
 removeItem horario idItem qtd inventario
     | qtd <= 0 =
         Left "A quantia removida tem que ser maior que zero"
-
     | Map.notMember idItem inventario =
         Left "Item a ser removido nao existe no inventario"
-
     | quantidade itemAtual < qtd =
         Left "Estoque insuficiente para remover"
-
-    | otherwise =
-        if novaQtd == 0
-        then
-            let inventarioZerado = Map.delete idItem inventario
-                logZerado = LogEntry
-                    { timestamp = horario
-                    , acao = Remove
-                    , detalhes =
-                        "Item removido totalmente: " ++ nome itemAtual ++
-                        " (ID: " ++ idItem ++
-                        ", Removido: " ++ show qtd ++
-                        ", Estoque zerado e item deletado)"
-                    , status = Sucesso
-                    }
-            in Right (inventarioZerado, logZerado)
-
-        else
-            let itemModificado = itemAtual { quantidade = novaQtd }
-                inventarioAtualizado = Map.insert idItem itemModificado inventario
-                logEntry = LogEntry
-                    { timestamp = horario
-                    , acao = Remove
-                    , detalhes =
-                        "Remocao de item: " ++ nome itemAtual ++
-                        " (ID: " ++ idItem ++
-                        ", Removido: " ++ show qtd ++
-                        ", Nova quantidade: " ++ show novaQtd ++ ")"
-                    , status = Sucesso
-                    }
-            in Right (inventarioAtualizado, logEntry)
+    | novaQtd == 0 = Right (inventarioZerado, logZerado)
+    | otherwise = Right (inventarioAtualizado, logEntry)
   where
-    itemAtual = inventario Map.! idItem
+    Just itemAtual = Map.lookup idItem inventario
     novaQtd = quantidade itemAtual - qtd
+
+    inventarioZerado = Map.delete idItem inventario
+    logZerado = LogEntry
+        { timestamp = horario
+        , acao = Remove
+        , detalhes =
+            "Item removido totalmente: " ++ nome itemAtual ++
+            " (ID: " ++ idItem ++
+            ", Removido: " ++ show qtd ++
+            ", Estoque zerado e item deletado)"
+        , status = Sucesso
+        }
+    
+    itemModificado = itemAtual { quantidade = novaQtd }
+    inventarioAtualizado = Map.insert idItem itemModificado inventario
+    logEntry = LogEntry
+        { timestamp = horario
+        , acao = Remove
+        , detalhes =
+            "Remocao de item: " ++ nome itemAtual ++
+            " (ID: " ++ idItem ++
+            ", Removido: " ++ show qtd ++
+            ", Nova quantidade: " ++ show novaQtd ++ ")"
+        , status = Sucesso
+        }
 
 updateQty :: UTCTime -> String -> Int -> Inventario -> Either String ResultadoOperacao
 updateQty horario idItem novaQtd inventario
