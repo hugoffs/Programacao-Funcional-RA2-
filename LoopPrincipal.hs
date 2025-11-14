@@ -1,11 +1,8 @@
-
 module LoopPrincipal where
 import Data.Time (UTCTime, getCurrentTime)
 import Funcoes
 import EstruturaDados
 import System.IO (hFlush, stdout)
-
--- Funções temporárias (você precisa implementar depois)
 
 getSafeInput :: String -> IO String
 getSafeInput text = do 
@@ -19,6 +16,23 @@ getSafeInput text = do
             putStrLn "Erro: A entrada não pode ser vazia!"
             getSafeInput text
         | otherwise = return isEmpty
+        
+    
+getSafeInputInt :: String -> IO Int
+getSafeInputInt text = do 
+    putStrLn text
+    hFlush stdout
+    temp <- getLine
+    conferirInteiro temp
+   where
+    conferirInteiro isInt 
+     | null isInt = do 
+        putStrLn "Erro: A entrada não pode ser vazia!"
+        getSafeInputInt text
+     | all (`elem` "0123456789") isInt = return (read isInt :: Int)  -- So pode estar passar se for digitado um numero e retornar um Int 
+     | otherwise = do
+        putStrLn "Erro: Digi um numero nao um caracter "
+        getSafeInputInt text
 
 addItemIO :: IO ()
 addItemIO = do
@@ -27,10 +41,9 @@ addItemIO = do
     
     idItem <- getSafeInput "ID do Item: "
     nomeItem <- getSafeInput "Nome do Item: "
-    qtdStr <- getSafeInput "Quantidade: "
+    qtd <- getSafeInputInt "Quantidade: " 
     categoria <- getSafeInput "Categoria:"
     
-    let qtd = read qtdStr :: Int
     horario <- getCurrentTime
     
     either 
@@ -41,18 +54,16 @@ addItemIO = do
             print novoInventario
         )
         (Funcoes.addItem horario idItem nomeItem qtd categoria myInventory)
-    
 
-    
+
 removeItemIO :: IO ()
 removeItemIO = do
     putStrLn "\n=== Remover Item ==="
     hFlush stdout
 
     idItem <- getSafeInput "ID di Item"
-    qtdStr <- getSafeInput "Quantidade a remover "
+    qtd <- getSafeInputInt "Quantidade a remover " 
     
-    let qtd = read qtdStr :: Int
     horario <- getCurrentTime
     
     either 
@@ -70,9 +81,8 @@ updateItemIO = do
     hFlush stdout
 
     idItem <- getSafeInput "ID do Item: "
-    qtdStr <- getSafeInput "Nova Quantidade "
+    qtd <- getSafeInputInt "Nova Quantidade " 
 
-    let qtd = read qtdStr :: Int
     horario <- getCurrentTime
 
     either
@@ -96,7 +106,7 @@ execucaoLoop conferiOpcao
     | conferiOpcao == "0" = putStrLn "Saindo do programa..."
     | otherwise = putStrLn "Operacao nao valida!" >> menu
 
-menu :: IO ()
+menu :: IO () 
 menu = do
     putStrLn "\nEscolha a operacao que sera realizada:"
     putStrLn "1: Adiciona um novo Item"
