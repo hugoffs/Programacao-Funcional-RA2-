@@ -77,7 +77,6 @@ getSafeInput text = do
             getSafeInput text
         | otherwise = return isEmpty
 
-
 getSafeInputInt :: String -> IO Int
 getSafeInputInt text = do
     putStrLn text
@@ -93,6 +92,7 @@ getSafeInputInt text = do
      | otherwise = do
         putStrLn "Erro: Digite um número, não um caractere."
         getSafeInputInt text
+
 
 -- OPERAÇÕES DO INVENTÁRIO
 
@@ -116,14 +116,26 @@ addItemIO = do
 
     -- USA O INVENTÁRIO CARREGADO
     case Funcoes.addItem horario idItem nomeItem qtd categoria inventarioAtual of
-        Left erro -> putStrLn $ "Erro: " ++ erro
+        Left erro -> do
+            putStrLn $ "Erro: " ++ erro
+
+            let logErro = LogEntry
+                    { timestamp = horario
+                    , acao = Add
+                    , detalhes = "Erro ao adicionar - ID: " ++ idItem ++
+                                 " - Nome: " ++ nomeItem ++
+                                 " - " ++ erro
+                    , status = Falha erro
+                    }
+
+            registrarLog (show logErro)
+            putStrLn "Erro registrado em Auditoria.log."
+
         Right (novoInventario, logEntry) -> do
             putStrLn "Item adicionado com sucesso!"
             registrarLog (show logEntry)
             salvarInventario novoInventario
             putStrLn "Operação registrada em Auditoria.log."
-
-
 
 removeItemIO :: IO ()
 removeItemIO = do
@@ -137,21 +149,21 @@ removeItemIO = do
 
     horario <- getCurrentTime
 
-    -- CORRIGIDO: usa inventarioAtual ao invés de myInventory
     case Funcoes.removeItem horario idItem qtd inventarioAtual of
         Left erro -> do
             putStrLn $ "Erro: " ++ erro
-            -- Registra a falha no log
-            let logErro = "ERRO - Remove - ID: " ++ idItem ++
-                         " - Qtd: " ++ show qtd ++
-                         " - " ++ erro
-            registrarLog logErro
-        Right (novoInventario, logEntry) -> do
-            putStrLn "Item removido com sucesso!"
-            registrarLog (show logEntry)
-            salvarInventario novoInventario
-            putStrLn "Operação registrada em Auditoria.log."
 
+            let logErro = LogEntry
+                    { timestamp = horario
+                    , acao = Remove
+                    , detalhes = "Falha ao remover - ID: " ++ idItem ++
+                                 " - Qtd Tentada: " ++ show qtd ++
+                                 " - " ++ erro
+                    , status = Falha erro
+                    }
+
+            registrarLog (show logErro)
+            putStrLn "Erro registrado em Auditoria.log."
 
 updateItemIO :: IO ()
 updateItemIO = do
