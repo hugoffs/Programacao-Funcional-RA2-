@@ -1,16 +1,10 @@
-{- LINKS 
-    link de leitura de Arquivo: https://kuniga.wordpress.com/2012/06/17/leitura-e-escrita-de-dados-em-haskell/
-    link Do catch: https://stackoverflow.com/questions/6009384/exception-handling-in-haskell
-    link entra e saida de dados: https://www.facom.ufu.br/~madriana/PF/IOHaskell.pdf
-    link seq : https://wiki.haskell.org/index.php?title=Seq
--}
 module Main where
 
 -- Importação dos Módulos
 import EstruturaDados
 import Funcoes
 import System.IO
-import Teste1
+
 import Control.Exception (catch, IOException)
 import Data.Time (UTCTime, getCurrentTime)
 import System.IO (hFlush, stdout)
@@ -239,15 +233,48 @@ relatorioSucessos :: IO ()
 relatorioSucessos = do
     putStrLn "\n=== RELATORIO DE SUCESSOS ==="
     logs <- carregarLogs
-    let sucessos = Funcoes.logsDeSucesso logs
+    let sucessos = Funcoes.logsdeAcertos  logs
 
     putStrLn $ "Total de sucessos: " ++ show (length sucessos)
     mapM_ print (take 5 sucessos)
 
-inserirDezItens :: IO()
-inserirDezItens = putStrLn "Função inserirDezItens ainda não implementada"
 
--- MENU PRINCIPAL
+inserirDezItens :: IO()
+inserirDezItens = do
+    putStrLn "\n=== Inserindo 10 itens ==="
+
+    inventarioAtual <- carregarInventario
+
+    horario <- getCurrentTime
+
+    let itens = [
+            ("ITEM001", "Notebook Dell", 5, "Computadores"),
+            ("ITEM002", "Mouse Logitech", 25, "Periféricos"),
+            ("ITEM003", "Teclado Mecânico", 15, "Periféricos"),
+            ("ITEM004", "Monitor LG 24\"", 8, "Monitores"),
+            ("ITEM005", "Webcam HD", 12, "Periféricos"),
+            ("ITEM006", "Headset Gamer", 18, "Periféricos"),
+            ("ITEM007", "SSD 500GB", 30, "Armazenamento"),
+            ("ITEM008", "Memória RAM 8GB", 40, "Componentes"),
+            ("ITEM009", "Cadeira Gamer", 6, "Mobiliário"),
+            ("ITEM010", "Mesa para Computador", 4, "Mobiliário")
+          ]
+
+    inserirRecursivo inventarioAtual itens 1
+  where
+    inserirRecursivo _ [] _ = putStrLn "\n10 itens inseridos com sucesso!"
+    inserirRecursivo inv ((id, nome, qtd, cat):resto) n = do
+        horario <- getCurrentTime
+        case Funcoes.addItem horario id nome qtd cat inv of
+            Left erro -> do
+                putStrLn $ "Item " ++ show n ++ " - Erro: " ++ erro
+                inserirRecursivo inv resto (n + 1)
+            Right (novoInv, logEntry) -> do
+                registrarLog (show logEntry)
+                salvarInventario novoInv
+                putStrLn $ "Item " ++ show n ++ " adicionado: " ++ nome
+                inserirRecursivo novoInv resto (n + 1)
+
 
 menu :: IO ()
 menu = do
@@ -271,7 +298,7 @@ menu = do
         | otherwise           = putStrLn "Operação não válida!" >> menu
 
 main :: IO ()
-main = do 
-    inicializacao ["Inventario.dat", "Auditoria.log"] 
+main = do
+    inicializacao ["Inventario.dat", "Auditoria.log"]
     putStrLn "Arquivos inicializados!"
     menu

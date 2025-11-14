@@ -81,7 +81,7 @@ updateQty horario idItem novaQtd inventario
         Left "A quantia alterada tem que ser maior que zero"
 
     | Map.notMember idItem inventario =
-        Left "Item a ser alterado nao existe no inventario"
+        Left "Item a ser removido nao existe no inventario"
     | otherwise =
         let itemAtual = inventario Map.! idItem
             qtdAnterior = quantidade itemAtual
@@ -106,6 +106,7 @@ historicoPorItem :: String -> [LogEntry] -> [LogEntry]
 historicoPorItem itemId logs =
     filter (\log -> itemId `isInfixOf` detalhes log) logs
 
+
 logsDeErro :: [LogEntry] -> [LogEntry]
 logsDeErro logs = filter eErro logs
   where
@@ -113,8 +114,8 @@ logsDeErro logs = filter eErro logs
         Falha _ -> True
         Sucesso -> False
 
-logsDeSucesso :: [LogEntry] -> [LogEntry]
-logsDeSucesso logs = filter eSucesso logs
+logsdeAcertos :: [LogEntry] -> [LogEntry]
+logsdeAcertos logs = filter eSucesso logs
   where
     eSucesso log = case status log of
         Sucesso -> True
