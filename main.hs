@@ -9,6 +9,9 @@ import Control.Exception (catch, IOException)
 import Data.Time (UTCTime, getCurrentTime)
 import System.IO (hFlush, stdout)
 
+import qualified Data.Map as Map
+import Data.Map (Map)
+
 --  SALVAR OPERAÇÕES NO ARQUIVO
 
 -- Salva uma operação de log no arquivo Auditoria.log
@@ -24,7 +27,10 @@ salvarInventario inv = writeFile "Inventario.dat" (show inv)
 -- Executa a operação de sincronização
 sincronizacao :: FilePath -> IO ()
 sincronizacao arq =
-    writeFile arq "fromList []"
+    case arq of
+        "Inventario.dat" -> writeFile arq (show (Map.empty :: Inventario))
+        "Auditoria.log"  -> writeFile arq ""
+        _ -> writeFile arq ""
 
 -- Inicializa um único arquivo
 inicializarArquivos :: FilePath -> IO ()
@@ -77,6 +83,7 @@ getSafeInput text = do
             getSafeInput text
         | otherwise = return isEmpty
 
+
 getSafeInputInt :: String -> IO Int
 getSafeInputInt text = do
     putStrLn text
@@ -92,7 +99,6 @@ getSafeInputInt text = do
      | otherwise = do
         putStrLn "Erro: Digite um número, não um caractere."
         getSafeInputInt text
-
 
 -- OPERAÇÕES DO INVENTÁRIO
 
@@ -113,8 +119,6 @@ addItemIO = do
     qtd <- getSafeInputInt "Quantidade: "
     categoria <- getSafeInput "Categoria:"
     horario <- getCurrentTime
-
-    -- USA O INVENTÁRIO CARREGADO
     case Funcoes.addItem horario idItem nomeItem qtd categoria inventarioAtual of
         Left erro -> do
             putStrLn $ "Erro: " ++ erro
@@ -165,6 +169,7 @@ removeItemIO = do
             registrarLog (show logErro)
             putStrLn "Erro registrado em Auditoria.log."
 
+
 updateItemIO :: IO ()
 updateItemIO = do
     putStrLn "\n=== Atualizar Quantidade do Item ==="
@@ -206,6 +211,7 @@ relatorio = do
     putStrLn "1. Historico de item"
     putStrLn "2. Ver erros"
     putStrLn "3. Ver sucessos"
+    putStrLn "4. Item mais movimentado"
     putStr "Escolha: "
     hFlush stdout
     opcao <- getLine
@@ -214,7 +220,8 @@ relatorio = do
         "1" -> testarHistorico
         "2" -> relatorioErros
         "3" -> relatorioSucessos
-        _ -> putStrLn "Opcao invalida!"
+        "4" -> relatorioItemMaisMovimentado
+        _   -> putStrLn "Opcao invalida!"
 
 carregarLogs :: IO [LogEntry]
 carregarLogs = do
@@ -256,6 +263,17 @@ relatorioSucessos = do
 
     putStrLn $ "Total de sucessos: " ++ show (length sucessos)
     mapM_ print (take 5 sucessos)
+    
+relatorioItemMaisMovimentado :: IO ()
+relatorioItemMaisMovimentado = do
+    putStrLn "\n=== ITEM MAIS MOVIMENTADO ==="
+
+    inventario <- carregarInventario
+    logs <- carregarLogs
+
+    let resultado = Funcoes.itemMaisMovimentado inventario logs
+
+    putStrLn resultado
 
 
 inserirDezItens :: IO()
@@ -267,16 +285,16 @@ inserirDezItens = do
     horario <- getCurrentTime
 
     let itens = [
-            ("ITEM001", "Notebook Dell", 5, "Computadores"),
-            ("ITEM002", "Mouse Logitech", 25, "Periféricos"),
-            ("ITEM003", "Teclado Mecânico", 15, "Periféricos"),
-            ("ITEM004", "Monitor LG 24\"", 8, "Monitores"),
-            ("ITEM005", "Webcam HD", 12, "Periféricos"),
-            ("ITEM006", "Headset Gamer", 18, "Periféricos"),
-            ("ITEM007", "SSD 500GB", 30, "Armazenamento"),
-            ("ITEM008", "Memória RAM 8GB", 40, "Componentes"),
-            ("ITEM009", "Cadeira Gamer", 6, "Mobiliário"),
-            ("ITEM010", "Mesa para Computador", 4, "Mobiliário")
+            ("001", "Notebook Dell", 5, "Computadores"),
+            ("002", "Mouse Logitech", 25, "Perifericos"),
+            ("003", "Teclado Mecanico", 15, "Perifericos"),
+            ("004", "Monitor LG 24", 8, "Monitores"),
+            ("005", "Webcam HD", 12, "Perifericos"),
+            ("006", "Headset Gamer", 18, "Perifericos"),
+            ("007", "SSD 500GB", 30, "Armazenamento"),
+            ("008", "Memoria RAM 8GB", 40, "Componentes"),
+            ("009", "Cadeira Gamer", 6, "Mobiliario"),
+            ("010", "Mesa para Computador", 4, "Mobilario")
           ]
 
     inserirRecursivo inventarioAtual itens 1

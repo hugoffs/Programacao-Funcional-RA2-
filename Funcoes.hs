@@ -4,7 +4,8 @@ import qualified Data.Map as Map
 import Data.Time (UTCTime)
 import Data.Map (Map)
 import EstruturaDados
-import Data.List (isInfixOf)
+import Data.List (isInfixOf, maximumBy)
+import Data.Ord (comparing)
 
 addItem :: UTCTime -> String -> String -> Int -> String -> Inventario -> Either String ResultadoOperacao
 addItem horario idItem nomeItem qtd categ inventario
@@ -51,9 +52,10 @@ removeItem horario idItem qtd inventario
                     { timestamp = horario
                     , acao = Remove
                     , detalhes =
-                        "Removidas " ++ show qtd ++
-                        " unidades de " ++ nome itemAtual ++
-                        " - estoque zerado, item removido"
+                        "Item removido totalmente: " ++ nome itemAtual ++
+                        " (ID: " ++ idItem ++
+                        ", Removido: " ++ show qtd ++
+                        ", Estoque zerado e item deletado)"
                     , status = Sucesso
                     }
             in Right (inventarioZerado, logZerado)
@@ -65,9 +67,10 @@ removeItem horario idItem qtd inventario
                     { timestamp = horario
                     , acao = Remove
                     , detalhes =
-                        "Removidas " ++ show qtd ++
-                        " unidades de " ++ nome itemAtual ++
-                        " (nova qtd: " ++ show novaQtd ++ ")"
+                        "Remocao de item: " ++ nome itemAtual ++
+                        " (ID: " ++ idItem ++
+                        ", Removido: " ++ show qtd ++
+                        ", Nova quantidade: " ++ show novaQtd ++ ")"
                     , status = Sucesso
                     }
             in Right (inventarioAtualizado, logEntry)
@@ -128,3 +131,24 @@ logsdeAcertos logs = filter eSucesso logs
     eSucesso log = case status log of
         Sucesso -> True
         Falha _ -> False
+        
+itemMaisMovimentado :: Inventario -> [LogEntry] -> String
+itemMaisMovimentado inventario logs =
+    let
+        acertos = logsdeAcertos logs
+
+        itens =
+            [ (idItem, nome item)
+            | (idItem, item) <- Map.toList inventario
+            ]
+
+        contagens =
+            [ (idItem, length (filter (\log -> nomeItem `isInfixOf` detalhes log) acertos))
+            | (idItem, nomeItem) <- itens
+            ]
+
+        (idMais, qtdMais) =
+            maximumBy (comparing snd) contagens
+
+    in "Item mais movimentado: " ++ idMais ++
+       " (" ++ show qtdMais ++ " movimentações)"
