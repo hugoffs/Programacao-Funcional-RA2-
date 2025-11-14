@@ -1,9 +1,12 @@
 module LoopPrincipal where
+
 import Data.Time (UTCTime, getCurrentTime)
 import Funcoes
 import EstruturaDados
 import System.IO (hFlush, stdout)
 
+
+-- Solicita entrada do tipo 'String' ao usuário. Trata para que não seja nula e repete a solicitação em caso de entrada vazia.
 getSafeInput :: String -> IO String
 getSafeInput text = do 
     putStrLn text 
@@ -17,7 +20,8 @@ getSafeInput text = do
             getSafeInput text
         | otherwise = return isEmpty
         
-    
+        
+ -- Solicita entrada do tipo 'Int' ao usuário. Valida se não é nula e se contém apenas números.   
 getSafeInputInt :: String -> IO Int
 getSafeInputInt text = do 
     putStrLn text
@@ -29,11 +33,13 @@ getSafeInputInt text = do
      | null isInt = do 
         putStrLn "Erro: A entrada não pode ser vazia!"
         getSafeInputInt text
-     | all (`elem` "0123456789") isInt = return (read isInt :: Int)  -- So pode estar passar se for digitado um numero e retornar um Int 
+     | all (`elem` "0123456789") isInt = return (read isInt :: Int) 
      | otherwise = do
-        putStrLn "Erro: Digi um numero nao um caracter "
+        putStrLn "Erro: Digite um número nao um carácter "
         getSafeInputInt text
+        
 
+-- Interface para adicionar um item. Coleta os dados do usuário e chama a função pura 'addItem'.
 addItemIO :: IO ()
 addItemIO = do
     putStrLn "\n=== Adicionar Novo Item ==="
@@ -56,12 +62,13 @@ addItemIO = do
         (Funcoes.addItem horario idItem nomeItem qtd categoria myInventory)
 
 
+-- Interface para remover uma quantidade de um item. Coleta o ID e a quantidade e chama 'removeItem'.
 removeItemIO :: IO ()
 removeItemIO = do
     putStrLn "\n=== Remover Item ==="
     hFlush stdout
 
-    idItem <- getSafeInput "ID di Item"
+    idItem <- getSafeInput "ID do Item"
     qtd <- getSafeInputInt "Quantidade a remover " 
     
     horario <- getCurrentTime
@@ -75,6 +82,8 @@ removeItemIO = do
         )
         (Funcoes.removeItem horario idItem qtd myInventory)
 
+
+-- Interface para atualizar a quantidade total de um item. Coleta o ID e a nova quantidade e chama 'updateQty'.
 updateItemIO :: IO ()
 updateItemIO = do
     putStrLn "\n=== Atualizar Quantidade do Item ==="
@@ -97,6 +106,8 @@ updateItemIO = do
 relatorio :: IO ()
 relatorio = putStrLn "Função relatorio ainda não implementada"
 
+
+-- Recebe a opção do menu e redireciona para a interface correspondente.
 execucaoLoop :: String -> IO ()
 execucaoLoop conferiOpcao
     | conferiOpcao == "1" = addItemIO >> menu
@@ -106,6 +117,8 @@ execucaoLoop conferiOpcao
     | conferiOpcao == "0" = putStrLn "Saindo do programa..."
     | otherwise = putStrLn "Operacao nao valida!" >> menu
 
+
+-- Exibe o menu principal de opções e aguarda a entrada do usuário.
 menu :: IO () 
 menu = do
     putStrLn "\nEscolha a operacao que sera realizada:"
