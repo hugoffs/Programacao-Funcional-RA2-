@@ -5,8 +5,6 @@
     link seq : https://wiki.haskell.org/index.php?title=Seq
 -}
 module Main where
-
--- Importação dos Módulos 
 import EstruturaDados
 import Funcoes
 import System.IO
@@ -14,14 +12,19 @@ import Control.Exception (catch, IOException)
 import Data.Time (UTCTime, getCurrentTime)
 import System.IO (hFlush, stdout)
 
+-- Salva uma operação de log no arquivo Auditoria.log
+registrarLog :: String -> IO ()
+registrarLog linha = appendFile "Auditoria.log" (linha ++ "\n")
+
+-- Salva o inventário atualizado no arquivo Inventario.dat
+salvarInventario :: Inventario -> IO ()
+salvarInventario inv = writeFile "Inventario.dat" (show inv)
 
 -- Executa a operação de sincronização
-sincronizacao :: FilePath -> String -> IO ()
-sincronizacao arq test
-    | test == "append" = appendFile arq "Nova linha\n" -- alterar isso no refatoramento 
-    | test == "write" = writeFile arq ""
-    | otherwise = error "Operação do arquivo Errado"
-
+sincronizacao :: FilePath -> IO ()
+sincronizacao arq =
+    writeFile arq "fromList []"
+    
 -- Inicializa um único arquivo
 inicializarArquivos :: FilePath -> IO () 
 inicializarArquivos arq = do
@@ -29,15 +32,13 @@ inicializarArquivos arq = do
         lerArquivo <- openFile arq ReadMode  
         hClose lerArquivo
         return ()) 
-        (\(_ :: IOException) -> sincronizacao arq "write") -- caso não exista o arquivo ele vai ser criado 
+        (\(_ :: IOException) -> sincronizacao arq ) 
 
 -- Inicializa múltiplos arquivos
 inicializacao :: [FilePath] -> IO ()
 inicializacao arqs = mapM_ inicializarArquivos arqs  
 
-
-
--- Solicita entrada do tipo 'String' ao usuário. Trata para que não seja nula e repete a solicitação em caso de entrada vazia.
+-- Seguranca de input
 getSafeInput :: String -> IO String
 getSafeInput text = do 
     putStrLn text 
@@ -52,7 +53,6 @@ getSafeInput text = do
         | otherwise = return isEmpty
         
         
- -- Solicita entrada do tipo 'Int' ao usuário. Valida se não é nula e se contém apenas números.   
 getSafeInputInt :: String -> IO Int
 getSafeInputInt text = do 
     putStrLn text
@@ -66,76 +66,94 @@ getSafeInputInt text = do
         getSafeInputInt text
      | all (`elem` "0123456789") isInt = return (read isInt :: Int) 
      | otherwise = do
-        putStrLn "Erro: Digite um número nao um carácter "
+        putStrLn "Erro: Digite um número, não um caractere."
         getSafeInputInt text
-        
 
--- Interface para adicionar um item. Coleta os dados do usuário e chama a função pura 'addItem'.
+--Funcoes do inventario
+carregarInventario :: IO Inventario
+carregarInventario = do
+    conteudo <- readFile "Inventario.dat"
+    return (read conteudo :: Inventario)
+
 addItemIO :: IO ()
 addItemIO = do
     putStrLn "\n=== Adicionar Novo Item ==="
     hFlush stdout
-    
+
+    inventarioAtual <- carregarInventario
+
     idItem <- getSafeInput "ID do Item: "
     nomeItem <- getSafeInput "Nome do Item: "
-    qtd <- getSafeInputInt "Quantidade: " 
-    categoria <- getSafeInput "Categoria:"
-    
-    horario <- getCurrentTime
-    
-    either 
-        (\erro -> putStrLn $ "Erro: " ++ erro)
-        (\(novoInventario, logEntry) -> do
-            putStrLn "Item adicionado com sucesso!"
-            print logEntry
-            print novoInventario
-        )
-        (Funcoes.addItem horario idItem nomeItem qtd categoria myInventory)
+    qtd <- getSafeInputInt "Quantidade: "
+    categoria <- getSafeInput "Categoria: "
 
--- Interface para remover uma quantidade de um item. Coleta o ID e a quantidade e chama 'removeItem'.
+    horario <- getCurrentTime
+
+    case Funcoes.addItem horario idItem nomeItem qtd categoria inventarioAtual of
+        Left erro -> do 
+            let logErro = LogEntry horario Add erro (Falha erro)
+            registrarLog (show logErro)
+            putStrLn ("Erro: " ++ erro)
+
+        Right (novoInventario, logEntry) -> do
+            registrarLog (show logEntry)
+            salvarInventario novoInventario
+            putStrLn "Item adicionado com sucesso!"
+
 removeItemIO :: IO ()
 removeItemIO = do
     putStrLn "\n=== Remover Item ==="
     hFlush stdout
-
-    idItem <- getSafeInput "ID do Item"
-    qtd <- getSafeInputInt "Quantidade a remover " 
     
+    idItem <- getSafeInput "ID do Item: "
+    qtd <- getSafeInputInt "Quantidade a remover: "
     horario <- getCurrentTime
     
-    either 
-        (\erro -> putStrLn $ "Erro: " ++ erro)
-        (\(novoInventario, logEntry) -> do
-            putStrLn "Item removido com sucesso!"
-            print logEntry
-            print novoInventario
-        )
-        (Funcoes.removeItem horario idItem qtd myInventory)
+    inventarioAtual <- carregarInventario
+    
+    case Funcoes.removeItem horario idItem qtd inventarioAtual of
+        Left erro -> do
+            let logErro = LogEntry horario Remove erro (Falha erro)
+            registrarLog (show logErro)
+            putStrLn ("Erro: " ++ erro)
 
--- Interface para atualizar a quantidade total de um item. Coleta o ID e a nova quantidade e chama 'updateQty'.
+        Right (novoInventario, logEntry) -> do
+            registrarLog (show logEntry)
+            salvarInventario novoInventario
+            putStrLn "Item removido com sucesso!"
+
+
 updateItemIO :: IO ()
 updateItemIO = do
     putStrLn "\n=== Atualizar Quantidade do Item ==="
     hFlush stdout
 
     idItem <- getSafeInput "ID do Item: "
-    qtd <- getSafeInputInt "Nova Quantidade " 
-
+    qtd <- getSafeInputInt "Nova quantidade: "
     horario <- getCurrentTime
+    
+    inventarioAtual <- carregarInventario
+    case Funcoes.updateQty horario idItem qtd inventarioAtual of
+        Left erro -> do
+            let logErro = LogEntry horario Update erro (Falha erro)
+            registrarLog (show logErro)
+            putStrLn ("Erro: " ++ erro)
 
-    either
-        (\erro -> putStrLn $ "Erro: " ++ erro)
-        (\(novoInventario, logEntry) -> do
+        Right (novoInventario, logEntry) -> do
+            registrarLog (show logEntry)
+            salvarInventario novoInventario
             putStrLn "Item atualizado com sucesso!"
-            print logEntry
-            print novoInventario
-        )
-        (Funcoes.updateQty horario idItem qtd myInventory)
+
 
 relatorio :: IO ()
-relatorio = putStrLn "Função relatorio ainda não implementada"
+relatorio = putStrLn "Função relatório ainda não implementada"
 
--- Recebe a opção do menu e redireciona para a interface correspondente.
+
+
+
+-- MENU PRINCIPAL
+
+
 execucaoLoop :: String -> IO ()
 execucaoLoop conferiOpcao
     | conferiOpcao == "1" = addItemIO >> menu
@@ -143,23 +161,22 @@ execucaoLoop conferiOpcao
     | conferiOpcao == "3" = updateItemIO >> menu
     | conferiOpcao == "4" = relatorio >> menu
     | conferiOpcao == "0" = putStrLn "Saindo do programa..."
-    | otherwise = putStrLn "Operacao nao valida!" >> menu
+    | otherwise           = putStrLn "Operação não válida!" >> menu
 
--- Exibe o menu principal de opções e aguarda a entrada do usuário.
+
 menu :: IO () 
 menu = do
-    putStrLn "\nEscolha a operacao que sera realizada:"
-    putStrLn "1: Adiciona um novo Item"
+    putStrLn "\nEscolha a operação:"
+    putStrLn "1: Adicionar Item"
     putStrLn "2: Remover Item"
     putStrLn "3: Atualizar Quantidade"
-    putStrLn "4: Relatorio"
-    putStrLn "0: Sair do Programa"
+    putStrLn "4: Relatório"
+    putStrLn "0: Sair"
     opcao <- getLine
     execucaoLoop opcao
-
 
 main :: IO ()
 main = do 
     inicializacao ["Inventario.dat", "Auditoria.log"] 
-    putStrLn "Arquivos inicializados com sucesso!"
+    putStrLn "Arquivos inicializados!"
     menu
