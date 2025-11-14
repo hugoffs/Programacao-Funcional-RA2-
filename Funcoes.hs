@@ -4,13 +4,14 @@ import qualified Data.Map as Map
 import Data.Time (UTCTime)
 import Data.Map (Map)
 import EstruturaDados
+import Data.List (isInfixOf)
 
 addItem :: UTCTime -> String -> String -> Int -> String -> Inventario -> Either String ResultadoOperacao
 addItem horario idItem nomeItem qtd categ inventario
   | qtd <= 0 =
     Left "O estoque tem que ser maior ou igual a zero"
 
-  | Map.member idItem inventario = 
+  | Map.member idItem inventario =
       Left "Um item do inventario ja possui esse ID"
   | otherwise =
       let novoItem = Item
@@ -73,14 +74,14 @@ removeItem horario idItem qtd inventario
   where
     itemAtual = inventario Map.! idItem
     novaQtd = quantidade itemAtual - qtd
-    
+
 updateQty :: UTCTime -> String -> Int -> Inventario -> Either String ResultadoOperacao
 updateQty horario idItem novaQtd inventario
     | novaQtd < 0 =
-        Left "A quantia alterada tem que ser maior que zero" 
+        Left "A quantia alterada tem que ser maior que zero"
 
     | Map.notMember idItem inventario =
-        Left "Item a ser removido nao existe no inventario"
+        Left "Item a ser alterado nao existe no inventario"
     | otherwise =
         let itemAtual = inventario Map.! idItem
             qtdAnterior = quantidade itemAtual
@@ -99,3 +100,22 @@ updateQty horario idItem novaQtd inventario
                 , status = Sucesso
                 }
         in Right (inventarioAtualizado, logEntry)
+
+
+historicoPorItem :: String -> [LogEntry] -> [LogEntry]
+historicoPorItem itemId logs =
+    filter (\log -> itemId `isInfixOf` detalhes log) logs
+
+logsDeErro :: [LogEntry] -> [LogEntry]
+logsDeErro logs = filter eErro logs
+  where
+    eErro log = case status log of
+        Falha _ -> True
+        Sucesso -> False
+
+logsDeSucesso :: [LogEntry] -> [LogEntry]
+logsDeSucesso logs = filter eSucesso logs
+  where
+    eSucesso log = case status log of
+        Sucesso -> True
+        Falha _ -> False

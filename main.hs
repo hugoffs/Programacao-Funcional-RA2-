@@ -5,12 +5,17 @@
     link seq : https://wiki.haskell.org/index.php?title=Seq
 -}
 module Main where
+
+-- Importação dos Módulos
 import EstruturaDados
 import Funcoes
 import System.IO
+import Teste1
 import Control.Exception (catch, IOException)
 import Data.Time (UTCTime, getCurrentTime)
 import System.IO (hFlush, stdout)
+
+--  SALVAR OPERAÇÕES NO ARQUIVO
 
 -- Salva uma operação de log no arquivo Auditoria.log
 registrarLog :: String -> IO ()
@@ -20,56 +25,83 @@ registrarLog linha = appendFile "Auditoria.log" (linha ++ "\n")
 salvarInventario :: Inventario -> IO ()
 salvarInventario inv = writeFile "Inventario.dat" (show inv)
 
+--  INICIALIZAÇÃO DOS ARQUIVOS
+
 -- Executa a operação de sincronização
 sincronizacao :: FilePath -> IO ()
 sincronizacao arq =
     writeFile arq "fromList []"
-    
+
 -- Inicializa um único arquivo
-inicializarArquivos :: FilePath -> IO () 
+inicializarArquivos :: FilePath -> IO ()
 inicializarArquivos arq = do
     catch (do
-        lerArquivo <- openFile arq ReadMode  
+        lerArquivo <- openFile arq ReadMode
         hClose lerArquivo
-        return ()) 
-        (\(_ :: IOException) -> sincronizacao arq ) 
+        return ())
+        (\(_ :: IOException) -> sincronizacao arq )
 
 -- Inicializa múltiplos arquivos
 inicializacao :: [FilePath] -> IO ()
-inicializacao arqs = mapM_ inicializarArquivos arqs  
+inicializacao arqs = mapM_ inicializarArquivos arqs
 
--- Seguranca de input
+historicoPorItem :: String -> [LogEntry] -> [LogEntry]
+historicoPorItem itemId logs =
+    filter (contemItemId itemId) logs
+  where
+    contemItemId idBuscado log =
+        elem idBuscado (words (detalhes log))
+
+logsDeErro :: [LogEntry] -> [LogEntry]
+logsDeErro logs = filter ehErro logs
+  where
+    ehErro log = case status log of
+        Falha _ -> True
+        Sucesso -> False
+
+logsDeSucesso :: [LogEntry] -> [LogEntry]
+logsDeSucesso logs = filter ehSucesso logs
+  where
+    ehSucesso log = case status log of
+        Sucesso -> True
+        Falha _ -> False
+
+--------------------------------------------------------------------------------
+-- FUNÇÕES DE INPUT SEGURO
+--------------------------------------------------------------------------------
+
 getSafeInput :: String -> IO String
-getSafeInput text = do 
-    putStrLn text 
+getSafeInput text = do
+    putStrLn text
     hFlush stdout
     temp <- getLine
     conferirVazio temp
-  where 
-    conferirVazio isEmpty 
-        | null isEmpty = do 
+  where
+    conferirVazio isEmpty
+        | null isEmpty = do
             putStrLn "Erro: A entrada não pode ser vazia!"
             getSafeInput text
         | otherwise = return isEmpty
-        
-        
+
+
 getSafeInputInt :: String -> IO Int
-getSafeInputInt text = do 
+getSafeInputInt text = do
     putStrLn text
     hFlush stdout
     temp <- getLine
     conferirInteiro temp
    where
-    conferirInteiro isInt 
-     | null isInt = do 
+    conferirInteiro isInt
+     | null isInt = do
         putStrLn "Erro: A entrada não pode ser vazia!"
         getSafeInputInt text
-     | all (`elem` "0123456789") isInt = return (read isInt :: Int) 
+     | all (`elem` "0123456789") isInt = return (read isInt :: Int)
      | otherwise = do
         putStrLn "Erro: Digite um número, não um caractere."
         getSafeInputInt text
 
---Funcoes do inventario
+-- OPERAÇÕES DO INVENTÁRIO
+
 carregarInventario :: IO Inventario
 carregarInventario = do
     conteudo <- readFile "Inventario.dat"
@@ -85,42 +117,46 @@ addItemIO = do
     idItem <- getSafeInput "ID do Item: "
     nomeItem <- getSafeInput "Nome do Item: "
     qtd <- getSafeInputInt "Quantidade: "
-    categoria <- getSafeInput "Categoria: "
-
+    categoria <- getSafeInput "Categoria:"
     horario <- getCurrentTime
 
+    -- USA O INVENTÁRIO CARREGADO
     case Funcoes.addItem horario idItem nomeItem qtd categoria inventarioAtual of
-        Left erro -> do 
-            let logErro = LogEntry horario Add erro (Falha erro)
-            registrarLog (show logErro)
-            putStrLn ("Erro: " ++ erro)
-
+        Left erro -> putStrLn $ "Erro: " ++ erro
         Right (novoInventario, logEntry) -> do
+            putStrLn "Item adicionado com sucesso!"
             registrarLog (show logEntry)
             salvarInventario novoInventario
-            putStrLn "Item adicionado com sucesso!"
+            putStrLn "Operação registrada em Auditoria.log."
+
+
 
 removeItemIO :: IO ()
 removeItemIO = do
     putStrLn "\n=== Remover Item ==="
     hFlush stdout
-    
+
+    inventarioAtual <- carregarInventario  -- CARREGA O INVENTÁRIO
+
     idItem <- getSafeInput "ID do Item: "
     qtd <- getSafeInputInt "Quantidade a remover: "
+
     horario <- getCurrentTime
-    
-    inventarioAtual <- carregarInventario
-    
+
+    -- CORRIGIDO: usa inventarioAtual ao invés de myInventory
     case Funcoes.removeItem horario idItem qtd inventarioAtual of
         Left erro -> do
-            let logErro = LogEntry horario Remove erro (Falha erro)
-            registrarLog (show logErro)
-            putStrLn ("Erro: " ++ erro)
-
+            putStrLn $ "Erro: " ++ erro
+            -- Registra a falha no log
+            let logErro = "ERRO - Remove - ID: " ++ idItem ++
+                         " - Qtd: " ++ show qtd ++
+                         " - " ++ erro
+            registrarLog logErro
         Right (novoInventario, logEntry) -> do
+            putStrLn "Item removido com sucesso!"
             registrarLog (show logEntry)
             salvarInventario novoInventario
-            putStrLn "Item removido com sucesso!"
+            putStrLn "Operação registrada em Auditoria.log."
 
 
 updateItemIO :: IO ()
@@ -128,52 +164,111 @@ updateItemIO = do
     putStrLn "\n=== Atualizar Quantidade do Item ==="
     hFlush stdout
 
+    inventarioAtual <- carregarInventario  -- CARREGA O INVENTÁRIO
+
     idItem <- getSafeInput "ID do Item: "
-    qtd <- getSafeInputInt "Nova quantidade: "
+    qtd <- getSafeInputInt "Nova Quantidade: "
+
     horario <- getCurrentTime
-    
-    inventarioAtual <- carregarInventario
+
+
     case Funcoes.updateQty horario idItem qtd inventarioAtual of
         Left erro -> do
-            let logErro = LogEntry horario Update erro (Falha erro)
-            registrarLog (show logErro)
-            putStrLn ("Erro: " ++ erro)
-
+            putStrLn $ "Erro: " ++ erro
+            -- Registra a falha no log
+            let logErro = "ERRO - Update - ID: " ++ idItem ++
+                         " - Nova Qtd: " ++ show qtd ++
+                         " - " ++ erro
+            registrarLog logErro
         Right (novoInventario, logEntry) -> do
+            putStrLn "Item atualizado com sucesso!"
             registrarLog (show logEntry)
             salvarInventario novoInventario
-            putStrLn "Item atualizado com sucesso!"
+            putStrLn "Operação registrada em Auditoria.log."
 
 
 relatorio :: IO ()
-relatorio = putStrLn "Função relatório ainda não implementada"
+relatorio = do
+    putStrLn "\n=== RELATORIOS ==="
+    putStrLn "1. Historico de item"
+    putStrLn "2. Ver erros"
+    putStrLn "3. Ver sucessos"
+    putStr "Escolha: "
+    hFlush stdout
+    opcao <- getLine
 
+    case opcao of
+        "1" -> testarHistorico
+        "2" -> relatorioErros
+        "3" -> relatorioSucessos
+        _ -> putStrLn "Opcao invalida!"
 
+carregarLogs :: IO [LogEntry]
+carregarLogs = do
+    conteudo <- readFile "Auditoria.log" `catch` tratarErro
+    if null conteudo
+    then return []
+    else return (map read (lines conteudo) :: [LogEntry])
+  where
+    tratarErro :: IOException -> IO String
+    tratarErro _ = return ""
 
+testarHistorico :: IO ()
+testarHistorico = do
+    putStrLn "\n=== HISTORICO POR ITEM ==="
+    putStr "Digite o ID do item: "
+    hFlush stdout
+    itemId <- getLine
+
+    logs <- carregarLogs
+    let historico = Funcoes.historicoPorItem itemId logs
+
+    putStrLn $ "\nOperacoes encontradas: " ++ show (length historico)
+    mapM_ print historico
+
+relatorioErros :: IO ()
+relatorioErros = do
+    putStrLn "\n=== RELATORIO DE ERROS ==="
+    logs <- carregarLogs
+    let erros = Funcoes.logsDeErro logs
+
+    putStrLn $ "Total de erros: " ++ show (length erros)
+    mapM_ print erros
+
+relatorioSucessos :: IO ()
+relatorioSucessos = do
+    putStrLn "\n=== RELATORIO DE SUCESSOS ==="
+    logs <- carregarLogs
+    let sucessos = Funcoes.logsDeSucesso logs
+
+    putStrLn $ "Total de sucessos: " ++ show (length sucessos)
+    mapM_ print (take 5 sucessos)
+
+inserirDezItens :: IO()
+inserirDezItens = putStrLn "Função inserirDezItens ainda não implementada"
 
 -- MENU PRINCIPAL
 
-
-execucaoLoop :: String -> IO ()
-execucaoLoop conferiOpcao
-    | conferiOpcao == "1" = addItemIO >> menu
-    | conferiOpcao == "2" = removeItemIO >> menu
-    | conferiOpcao == "3" = updateItemIO >> menu
-    | conferiOpcao == "4" = relatorio >> menu
-    | conferiOpcao == "0" = putStrLn "Saindo do programa..."
-    | otherwise           = putStrLn "Operação não válida!" >> menu
-
-
-menu :: IO () 
+menu :: IO ()
 menu = do
     putStrLn "\nEscolha a operação:"
     putStrLn "1: Adicionar Item"
     putStrLn "2: Remover Item"
     putStrLn "3: Atualizar Quantidade"
     putStrLn "4: Relatório"
+    putStrLn "5: Insira 10 Itens"
     putStrLn "0: Sair"
     opcao <- getLine
     execucaoLoop opcao
+  where
+    execucaoLoop conferiOpcao
+        | conferiOpcao == "1" = addItemIO >> menu
+        | conferiOpcao == "2" = removeItemIO >> menu
+        | conferiOpcao == "3" = updateItemIO >> menu
+        | conferiOpcao == "4" = relatorio >> menu
+        | conferiOpcao == "5" = inserirDezItens >> menu
+        | conferiOpcao == "0" = putStrLn "Saindo do programa..."
+        | otherwise           = putStrLn "Operação não válida!" >> menu
 
 main :: IO ()
 main = do 
