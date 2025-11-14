@@ -1,3 +1,4 @@
+
 module LoopPrincipal where
 import Data.Time (UTCTime, getCurrentTime)
 import Funcoes
@@ -5,31 +6,34 @@ import EstruturaDados
 import System.IO (hFlush, stdout)
 
 -- Funções temporárias (você precisa implementar depois)
+
+getSafeInput :: String -> IO String
+getSafeInput text = do
+    putStrLn text
+    hFlush stdout
+    temp <- getLine
+    conferirVazio temp
+  where
+    conferirVazio isEmpty
+        | null isEmpty = do
+            putStrLn "Erro: A entrada não pode ser vazia!"
+            getSafeInput text
+        | otherwise = return isEmpty
+
 addItemIO :: IO ()
 addItemIO = do
     putStrLn "\n=== Adicionar Novo Item ==="
     hFlush stdout
-    putStr "ID do Item: "
-    hFlush stdout
-    idItem <- getLine
-    
-    putStr "Nome do Item: "
-    hFlush stdout
-    nomeItem <- getLine
-    
-    putStr "Quantidade: "
-    hFlush stdout
-    qtdStr <- getLine
-    
-    
-    putStr "Categoria: "
-    hFlush stdout
-    categoria <- getLine
+
+    idItem <- getSafeInput "ID do Item: "
+    nomeItem <- getSafeInput "Nome do Item: "
+    qtdStr <- getSafeInput "Quantidade: "
+    categoria <- getSafeInput "Categoria:"
 
     let qtd = read qtdStr :: Int
     horario <- getCurrentTime
-    
-    either 
+
+    either
         (\erro -> putStrLn $ "Erro: " ++ erro)
         (\(novoInventario, logEntry) -> do
             putStrLn "Item adicionado com sucesso!"
@@ -37,7 +41,6 @@ addItemIO = do
             print novoInventario
         )
         (Funcoes.addItem horario idItem nomeItem qtd categoria myInventory)
-
 
 removeItemIO :: IO ()
 removeItemIO = do
