@@ -8,14 +8,14 @@ import System.IO (hFlush, stdout)
 -- Funções temporárias (você precisa implementar depois)
 
 getSafeInput :: String -> IO String
-getSafeInput text = do
-    putStrLn text
+getSafeInput text = do 
+    putStrLn text 
     hFlush stdout
     temp <- getLine
     conferirVazio temp
-  where
-    conferirVazio isEmpty
-        | null isEmpty = do
+  where 
+    conferirVazio isEmpty 
+        | null isEmpty = do 
             putStrLn "Erro: A entrada não pode ser vazia!"
             getSafeInput text
         | otherwise = return isEmpty
@@ -24,16 +24,16 @@ addItemIO :: IO ()
 addItemIO = do
     putStrLn "\n=== Adicionar Novo Item ==="
     hFlush stdout
-
+    
     idItem <- getSafeInput "ID do Item: "
     nomeItem <- getSafeInput "Nome do Item: "
     qtdStr <- getSafeInput "Quantidade: "
     categoria <- getSafeInput "Categoria:"
-
+    
     let qtd = read qtdStr :: Int
     horario <- getCurrentTime
-
-    either
+    
+    either 
         (\erro -> putStrLn $ "Erro: " ++ erro)
         (\(novoInventario, logEntry) -> do
             putStrLn "Item adicionado com sucesso!"
@@ -41,18 +41,16 @@ addItemIO = do
             print novoInventario
         )
         (Funcoes.addItem horario idItem nomeItem qtd categoria myInventory)
+    
 
+    
 removeItemIO :: IO ()
 removeItemIO = do
     putStrLn "\n=== Remover Item ==="
     hFlush stdout
-    putStr "ID do Item: "
-    hFlush stdout
-    idItem <- getLine
-    
-    putStr "Quantidade a remover: "
-    hFlush stdout
-    qtdStr <- getLine
+
+    idItem <- getSafeInput "ID di Item"
+    qtdStr <- getSafeInput "Quantidade a remover "
     
     let qtd = read qtdStr :: Int
     horario <- getCurrentTime
@@ -70,13 +68,9 @@ updateItemIO :: IO ()
 updateItemIO = do
     putStrLn "\n=== Atualizar Quantidade do Item ==="
     hFlush stdout
-    putStr "ID do Item: "
-    hFlush stdout
-    idItem <- getLine
 
-    putStr "Nova Quantidade: "
-    hFlush stdout
-    qtdStr <- getLine
+    idItem <- getSafeInput "ID do Item: "
+    qtdStr <- getSafeInput "Nova Quantidade "
 
     let qtd = read qtdStr :: Int
     horario <- getCurrentTime
