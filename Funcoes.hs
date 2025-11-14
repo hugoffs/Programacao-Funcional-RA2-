@@ -77,29 +77,37 @@ removeItem horario idItem qtd inventario
 
 updateQty :: UTCTime -> String -> Int -> Inventario -> Either String ResultadoOperacao
 updateQty horario idItem novaQtd inventario
-    | novaQtd < 0 =
-        Left "A quantia alterada tem que ser maior que zero"
-
     | Map.notMember idItem inventario =
         Left "Item a ser removido nao existe no inventario"
     | otherwise =
         let itemAtual = inventario Map.! idItem
             qtdAnterior = quantidade itemAtual
-
-            itemModificado = itemAtual { quantidade = novaQtd }
-            inventarioAtualizado = Map.insert idItem itemModificado inventario
-
-            logEntry = LogEntry
-                { timestamp = horario
-                , acao = Update
-                , detalhes =
-                    "Item atualizado: " ++ nome itemAtual ++
-                    " (ID: " ++ idItem ++
-                    ", Qtd anterior: " ++ show qtdAnterior ++
-                    ", Nova qtd: " ++ show novaQtd ++ ")"
-                , status = Sucesso
-                }
-        in Right (inventarioAtualizado, logEntry)
+            qtdFinal = qtdAnterior + novaQtd
+        in
+            if qtdFinal < 0
+            then Left "Estoque insuficiente para remover essa quantidade"
+            else
+                let itemModificado = itemAtual { quantidade = qtdFinal }
+                    inventarioAtualizado = Map.insert idItem itemModificado inventario
+                    detalheTexto =
+                        if novaQtd >= 0
+                        then "Item atualizado: " ++ nome itemAtual ++
+                             " (ID: " ++ idItem ++
+                             ", Qtd anterior: " ++ show qtdAnterior ++
+                             ", Adicionado: +" ++ show novaQtd ++
+                             ", Nova qtd: " ++ show qtdFinal ++ ")"
+                        else "Item atualizado: " ++ nome itemAtual ++
+                             " (ID: " ++ idItem ++
+                             ", Qtd anterior: " ++ show qtdAnterior ++
+                             ", Removido: " ++ show novaQtd ++
+                             ", Nova qtd: " ++ show qtdFinal ++ ")"
+                    logEntry = LogEntry
+                        { timestamp = horario
+                        , acao = Update
+                        , detalhes = detalheTexto
+                        , status = Sucesso
+                        }
+                in Right (inventarioAtualizado, logEntry)
 
 
 historicoPorItem :: String -> [LogEntry] -> [LogEntry]

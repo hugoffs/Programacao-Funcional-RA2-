@@ -158,27 +158,34 @@ updateItemIO = do
     putStrLn "\n=== Atualizar Quantidade do Item ==="
     hFlush stdout
 
-    inventarioAtual <- carregarInventario  -- CARREGA O INVENTÁRIO
+    inventarioAtual <- carregarInventario
 
     idItem <- getSafeInput "ID do Item: "
-    qtd <- getSafeInputInt "Nova Quantidade: "
+    putStr "Quantidade a adicionar ou remover"
+    hFlush stdout
+    qtdStr <- getLine
+    let qtd = read qtdStr :: Int
 
     horario <- getCurrentTime
-
 
     case Funcoes.updateQty horario idItem qtd inventarioAtual of
         Left erro -> do
             putStrLn $ "Erro: " ++ erro
-            -- Registra a falha no log
-            let logErro = "ERRO - Update - ID: " ++ idItem ++
-                         " - Nova Qtd: " ++ show qtd ++
-                         " - " ++ erro
-            registrarLog logErro
+            let logErro = LogEntry
+                    { timestamp = horario
+                    , acao = Update
+                    , detalhes = "Falha ao atualizar - ID: " ++ idItem ++
+                                " - Delta Qtd: " ++ show qtd ++
+                                " - " ++ erro
+                    , status = Falha erro
+                    }
+            registrarLog (show logErro)
+            putStrLn "Erro registrado em Auditoria.log."
         Right (novoInventario, logEntry) -> do
             putStrLn "Item atualizado com sucesso!"
             registrarLog (show logEntry)
             salvarInventario novoInventario
-            putStrLn "Operação registrada em Auditoria.log."
+            putStrLn "Operacao registrada em Auditoria.log."
 
 
 relatorio :: IO ()
