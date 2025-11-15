@@ -187,7 +187,7 @@ updateItemIO = do
             salvarInventario novoInventario
             putStrLn "Operacao registrada em Auditoria.log."
 
---------------------------------- Funções de Relatório ----------------------------------
+--------------------------------- Funcoes de Realatorio ----------------------------------
 
 
 relatorio :: IO ()
@@ -197,6 +197,7 @@ relatorio = do
     putStrLn "2. Ver erros"
     putStrLn "3. Ver sucessos"
     putStrLn "4. Item mais movimentado"
+    putStrLn "5. Item carregados na memoria"
     putStr "Escolha: "
     hFlush stdout
     opcao <- getLine
@@ -206,6 +207,7 @@ relatorio = do
         "2" -> relatorioErros
         "3" -> relatorioSucessos
         "4" -> relatorioItemMaisMovimentado
+        "5" -> listarInventarioIO
         _   -> putStrLn "Opcao invalida!"
 
 
@@ -251,9 +253,9 @@ relatorioSucessos = do
     let sucessos = Funcoes.logsdeAcertos  logs
 
     putStrLn $ "Total de sucessos: " ++ show (length sucessos)
-    mapM_ print (take 5 sucessos)
-    
-    
+    mapM_ print sucessos
+
+
 relatorioItemMaisMovimentado :: IO ()
 relatorioItemMaisMovimentado = do
     putStrLn "\n=== ITEM MAIS MOVIMENTADO ==="
@@ -265,6 +267,19 @@ relatorioItemMaisMovimentado = do
 
     putStrLn resultado
 
+listarInventarioIO :: IO ()
+listarInventarioIO = do
+    putStrLn "\n=== ITENS EM INVENTARIO ==="
+    inventario <- carregarInventario
+    let itens = Funcoes.listarItens inventario
+
+    putStrLn $ "Total de itens: " ++ show (length itens)
+    mapM_ (\(id, item) -> do
+        putStrLn $ "\nID: " ++ id
+        putStrLn $ "  Nome: " ++ nome item
+        putStrLn $ "  Quantidade: " ++ show (quantidade item)
+        putStrLn $ "  Categoria: " ++ categoria item
+        ) itens
 
 inserirDezItens :: IO()
 inserirDezItens = do
@@ -284,7 +299,7 @@ inserirDezItens = do
             ("007", "SSD 500GB", 30, "Armazenamento"),
             ("008", "Memoria RAM 8GB", 40, "Componentes"),
             ("009", "Cadeira Gamer", 6, "Mobiliario"),
-            ("010", "Mesa para Computador", 4, "Mobiliario")
+            ("010", "Mesa para Computador", 4, "Mobilario")
           ]
 
     inserirRecursivo inventarioAtual itens 1

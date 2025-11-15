@@ -127,6 +127,9 @@ logsdeAcertos logs = filter eSucesso logs
         Sucesso -> True
         Falha _ -> False
         
+listarItens :: Inventario -> [(String, Item)]
+listarItens inventario = Map.toList inventario
+
 itemMaisMovimentado :: Inventario -> [LogEntry] -> String
 itemMaisMovimentado inventario logs =
     let
