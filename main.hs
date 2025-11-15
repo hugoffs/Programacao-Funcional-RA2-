@@ -12,7 +12,7 @@ import System.IO (hFlush, stdout)
 import qualified Data.Map as Map
 import Data.Map (Map)
 
---  SALVAR OPERAÇÕES NO ARQUIVO
+--  -------------------------SALVAR OPERAÇÕES NO ARQUIVO ------------------------
 
 -- Salva uma operação de log no arquivo Auditoria.log
 registrarLog :: String -> IO ()
@@ -22,7 +22,7 @@ registrarLog linha = appendFile "Auditoria.log" (linha ++ "\n")
 salvarInventario :: Inventario -> IO ()
 salvarInventario inv = writeFile "Inventario.dat" (show inv)
 
---  INICIALIZAÇÃO DOS ARQUIVOS
+--------------------- INICIALIZAÇÃO DOS ARQUIVOS --------------------------------
 
 -- Executa a operação de sincronização
 sincronizacao :: FilePath -> IO ()
@@ -45,30 +45,8 @@ inicializarArquivos arq = do
 inicializacao :: [FilePath] -> IO ()
 inicializacao arqs = mapM_ inicializarArquivos arqs
 
-historicoPorItem :: String -> [LogEntry] -> [LogEntry]
-historicoPorItem itemId logs =
-    filter (contemItemId itemId) logs
-  where
-    contemItemId idBuscado log =
-        elem idBuscado (words (detalhes log))
 
-logsDeErro :: [LogEntry] -> [LogEntry]
-logsDeErro logs = filter ehErro logs
-  where
-    ehErro log = case status log of
-        Falha _ -> True
-        Sucesso -> False
-
-logsDeSucesso :: [LogEntry] -> [LogEntry]
-logsDeSucesso logs = filter ehSucesso logs
-  where
-    ehSucesso log = case status log of
-        Sucesso -> True
-        Falha _ -> False
-
---------------------------------------------------------------------------------
--- FUNÇÕES DE INPUT SEGURO
---------------------------------------------------------------------------------
+--------------------------------FUNÇÕES DE INPUT SEGURO------------------------------------------------
 
 getSafeInput :: String -> IO String
 getSafeInput text = do
@@ -82,6 +60,7 @@ getSafeInput text = do
             putStrLn "Erro: A entrada não pode ser vazia!"
             getSafeInput text
         | otherwise = return isEmpty
+
 
 
 getSafeInputInt :: String -> IO Int
@@ -106,6 +85,7 @@ carregarInventario :: IO Inventario
 carregarInventario = do
     conteudo <- readFile "Inventario.dat"
     return (read conteudo :: Inventario)
+
 
 addItemIO :: IO ()
 addItemIO = do
@@ -141,6 +121,7 @@ addItemIO = do
             salvarInventario novoInventario
             putStrLn "Operação registrada em Auditoria.log."
 
+
 removeItemIO :: IO ()
 removeItemIO = do
     putStrLn "\n=== Remover Item ==="
@@ -173,6 +154,7 @@ removeItemIO = do
             registrarLog (show logEntry)
             putStrLn "Item removido"
 
+
 updateItemIO :: IO ()
 updateItemIO = do
     putStrLn "\n=== Atualizar Quantidade do Item ==="
@@ -181,10 +163,8 @@ updateItemIO = do
     inventarioAtual <- carregarInventario
 
     idItem <- getSafeInput "ID do Item: "
-    putStr "Quantidade a adicionar ou remover"
-    hFlush stdout
-    qtdStr <- getLine
-    let qtd = read qtdStr :: Int
+    hFlush stdout 
+    qtd <- getSafeInputInt"Quantidade a adicionar ou remover:  "
 
     horario <- getCurrentTime
 
@@ -207,6 +187,8 @@ updateItemIO = do
             salvarInventario novoInventario
             putStrLn "Operacao registrada em Auditoria.log."
 
+--------------------------------- Funcoes de Realatorio ----------------------------------
+
 
 relatorio :: IO ()
 relatorio = do
@@ -226,6 +208,7 @@ relatorio = do
         "4" -> relatorioItemMaisMovimentado
         _   -> putStrLn "Opcao invalida!"
 
+
 carregarLogs :: IO [LogEntry]
 carregarLogs = do
     conteudo <- readFile "Auditoria.log" `catch` tratarErro
@@ -235,6 +218,7 @@ carregarLogs = do
   where
     tratarErro :: IOException -> IO String
     tratarErro _ = return ""
+
 
 testarHistorico :: IO ()
 testarHistorico = do
@@ -249,6 +233,7 @@ testarHistorico = do
     putStrLn $ "\nOperacoes encontradas: " ++ show (length historico)
     mapM_ print historico
 
+
 relatorioErros :: IO ()
 relatorioErros = do
     putStrLn "\n=== RELATORIO DE ERROS ==="
@@ -258,6 +243,7 @@ relatorioErros = do
     putStrLn $ "Total de erros: " ++ show (length erros)
     mapM_ print erros
 
+
 relatorioSucessos :: IO ()
 relatorioSucessos = do
     putStrLn "\n=== RELATORIO DE SUCESSOS ==="
@@ -266,6 +252,7 @@ relatorioSucessos = do
 
     putStrLn $ "Total de sucessos: " ++ show (length sucessos)
     mapM_ print (take 5 sucessos)
+    
     
 relatorioItemMaisMovimentado :: IO ()
 relatorioItemMaisMovimentado = do
