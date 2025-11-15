@@ -187,7 +187,7 @@ updateItemIO = do
             salvarInventario novoInventario
             putStrLn "Operacao registrada em Auditoria.log."
 
---------------------------------- Funcoes de Realatorio ----------------------------------
+--------------------------------- Funções de Relatório ----------------------------------
 
 
 relatorio :: IO ()
@@ -284,7 +284,7 @@ inserirDezItens = do
             ("007", "SSD 500GB", 30, "Armazenamento"),
             ("008", "Memoria RAM 8GB", 40, "Componentes"),
             ("009", "Cadeira Gamer", 6, "Mobiliario"),
-            ("010", "Mesa para Computador", 4, "Mobilario")
+            ("010", "Mesa para Computador", 4, "Mobiliario")
           ]
 
     inserirRecursivo inventarioAtual itens 1
